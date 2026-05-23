@@ -338,6 +338,7 @@ const handleAiSuggestionsUpdated = (data) => {
 }
 
 const handleMaxCommuteTimeUpdated = (maxValue) => {
+  console.log('Received max commute time:', maxValue)
   maxCommuteTime.value = maxValue
   // 如果当前通勤时间超过新的最大值，调整当前值
   if (commuteTime.value > maxValue) {

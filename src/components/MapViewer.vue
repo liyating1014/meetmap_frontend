@@ -203,11 +203,15 @@ const searchKeyword = (keyword) => new Promise((resolve) => {
 })
 
 const getArrivalRangeBounds = (anchor, commuteTime) => new Promise((resolve) => {
-  if (!arrivalRange || !anchor) {
+  if (!arrivalRange || !anchor || !anchor.longitude || !anchor.latitude) {
     console.log('Debug - ArrivalRange or anchor missing, using fallback')
     // 使用圆形缓冲区作为备选方案
-    const fallbackBounds = createCircularBuffer(anchor, commuteTime)
-    resolve(fallbackBounds)
+    if (anchor && anchor.longitude && anchor.latitude) {
+      const fallbackBounds = createCircularBuffer(anchor, commuteTime)
+      resolve(fallbackBounds)
+    } else {
+      resolve([])
+    }
     return
   }
 
@@ -236,25 +240,30 @@ const getArrivalRangeBounds = (anchor, commuteTime) => new Promise((resolve) => 
 
 // 创建圆形缓冲区作为备选方案
 const createCircularBuffer = (anchor, commuteTime) => {
+  if (!anchor || !anchor.longitude || !anchor.latitude) {
+    console.log('Debug - Invalid anchor for circular buffer')
+    return []
+  }
+
   // 假设平均速度：地铁/公交约 15km/h，即 0.25km/min
   const avgSpeed = 0.25 // km/min
   const radius = commuteTime * avgSpeed // km
-  
+
   // 将半径转换为经纬度度数（粗略估算）
   // 1度经度约等于 111km，1度纬度约等于 111km
   const radiusInDegrees = radius / 111
-  
+
   const center = [anchor.longitude, anchor.latitude]
   const points = []
   const segments = 36 // 圆的分段数
-  
+
   for (let i = 0; i <= segments; i++) {
     const angle = (i / segments) * 2 * Math.PI
     const lng = center[0] + radiusInDegrees * Math.cos(angle)
     const lat = center[1] + radiusInDegrees * Math.sin(angle)
     points.push([lng, lat])
   }
-  
+
   return [points]
 }
 
@@ -299,6 +308,11 @@ const renderFeature = (feature, style, targetCollection) => {
 }
 
 const addAnchorMarker = (anchor, labelPrefix, iconName) => {
+  if (!anchor || !anchor.longitude || !anchor.latitude) {
+    console.log('Debug - Invalid anchor for marker')
+    return
+  }
+
   const marker = new AMap.Marker({
     position: [anchor.longitude, anchor.latitude],
     title: anchor.name,
@@ -336,6 +350,11 @@ const showPoiInfoWindow = (poi, index = 0) => {
     return
   }
 
+  if (!poi || !poi.longitude || !poi.latitude) {
+    console.log('Debug - Invalid POI for info window')
+    return
+  }
+
   if (infoWindow) {
     infoWindow.close()
   }
@@ -350,6 +369,11 @@ const showPoiInfoWindow = (poi, index = 0) => {
 
 const addLocationMarkers = (locations) => {
   locations.forEach((location, index) => {
+    if (!location || !location.longitude || !location.latitude) {
+      console.log('Debug - Invalid location for marker:', location)
+      return
+    }
+
     const marker = new AMap.Marker({
       position: [location.longitude, location.latitude],
       title: location.name,
@@ -380,6 +404,11 @@ const addLocationMarkers = (locations) => {
 
 const renderRecommendedPoiMarkers = (pois) => {
   pois.forEach((poi, index) => {
+    if (!poi || !poi.longitude || !poi.latitude) {
+      console.log('Debug - Invalid POI for marker:', poi)
+      return
+    }
+
     const marker = new AMap.Marker({
       position: [poi.longitude, poi.latitude],
       offset: new AMap.Pixel(-14, -14),
@@ -411,7 +440,7 @@ const renderRecommendedPoiMarkers = (pois) => {
 }
 
 const calculateRouteReference = (startPoi, endPoi, currentSequence) => {
-  if (!driving || !startPoi || !endPoi) {
+  if (!driving || !startPoi || !endPoi || !startPoi.longitude || !startPoi.latitude || !endPoi.longitude || !endPoi.latitude) {
     return
   }
 
@@ -442,7 +471,7 @@ const calculateRouteReference = (startPoi, endPoi, currentSequence) => {
 }
 
 const calculateMaxCommuteTime = (startPoi, endPoi, currentSequence) => {
-  if (!startPoi || !endPoi) {
+  if (!startPoi || !endPoi || !startPoi.longitude || !startPoi.latitude || !endPoi.longitude || !endPoi.latitude) {
     return
   }
 
@@ -784,7 +813,7 @@ const updateMap = async () => {
 }
 
 const focusOnPlace = (location, index) => {
-  if (!map.value) {
+  if (!map.value || !location || !location.longitude || !location.latitude) {
     return
   }
 
@@ -802,7 +831,7 @@ const focusOnPlace = (location, index) => {
 }
 
 const focusOnRecommendedPoi = (poi, index = 0) => {
-  if (!map.value || !poi) {
+  if (!map.value || !poi || !poi.longitude || !poi.latitude) {
     return
   }
 

@@ -182,6 +182,24 @@ const fetchAiSuggestions = async () => {
     emit('ai-suggestions-updated', response.data)
   } catch (error) {
     console.error('AI 路线规划失败:', error)
+    
+    // 详细的错误处理
+    if (error.response) {
+      // 服务器返回了错误状态码
+      if (error.response.status === 500) {
+        alert('后端 AI 接口响应失败，请检查服务器状态')
+      } else if (error.response.status === 404) {
+        alert('AI 接口不存在，请检查后端配置')
+      } else {
+        alert(`AI 接口请求失败: ${error.response.status}`)
+      }
+    } else if (error.request) {
+      // 请求已发出但没有收到响应
+      alert('无法连接到后端服务器，请检查网络连接')
+    } else {
+      // 其他错误
+      alert('AI 路线规划失败，请稍后重试')
+    }
   } finally {
     loadingAi.value = false
   }
