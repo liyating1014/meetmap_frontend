@@ -8,6 +8,7 @@
       @route-calculated="handleRouteCalculated"
       @isochrone-calculated="handleIsochroneCalculated"
       @poi-results-updated="handlePoiResultsUpdated"
+      @max-commute-time-updated="handleMaxCommuteTimeUpdated"
     />
 
     <div class="pointer-events-none absolute inset-0 z-20">
@@ -32,6 +33,7 @@
         <div v-if="showCalculator" class="pointer-events-auto w-full md:max-w-sm">
           <PlaceList
             :commute-time="commuteTime"
+            :max-commute-time="maxCommuteTime"
             :route-info="routeInfo"
             @anchor-points-updated="handleAnchorPointsUpdated"
             @commute-time-updated="handleCommuteTimeUpdated"
@@ -170,6 +172,7 @@ import PlaceList from '../components/PlaceList.vue'
 const mapViewerRef = ref(null)
 const mapLocations = ref([])
 const commuteTime = ref(30)
+const maxCommuteTime = ref(60)
 const routeInfo = ref({ distance: null, duration: null })
 const anchorPoints = ref({ start: '', end: '' })
 const recommendedPois = ref([])
@@ -331,6 +334,14 @@ const handleAiSuggestionsUpdated = (data) => {
     }))
     // Merge with existing recommended POIs or replace them
     recommendedPois.value = aiPois
+  }
+}
+
+const handleMaxCommuteTimeUpdated = (maxValue) => {
+  maxCommuteTime.value = maxValue
+  // 如果当前通勤时间超过新的最大值，调整当前值
+  if (commuteTime.value > maxValue) {
+    commuteTime.value = maxValue
   }
 }
 </script>

@@ -25,6 +25,7 @@ const emit = defineEmits([
   'route-calculated',
   'isochrone-calculated',
   'poi-results-updated',
+  'max-commute-time-updated',
 ])
 
 const props = defineProps({
@@ -51,6 +52,7 @@ const poiMarkers = ref([])
 let AMap = null
 let infoWindow = null
 let driving = null
+let transit = null
 let placeSearch = null
 let poiSearch = null
 let arrivalRange = null
@@ -113,7 +115,7 @@ const initMap = async () => {
     AMap = await AMapLoader.load({
       key: '2755c149ab561bac1e37da8e61d4467c',
       version: '2.0',
-      plugins: ['AMap.Marker', 'AMap.InfoWindow', 'AMap.Driving', 'AMap.PlaceSearch', 'AMap.ArrivalRange'],
+      plugins: ['AMap.Marker', 'AMap.InfoWindow', 'AMap.Driving', 'AMap.Transit', 'AMap.PlaceSearch', 'AMap.ArrivalRange'],
     })
 
     map.value = new AMap.Map('map-container', {
@@ -128,6 +130,10 @@ const initMap = async () => {
       hideMarkers: true,
       showTraffic: false,
       autoFitView: false,
+    })
+
+    transit = new AMap.Transit({
+      policy: AMap.TransitPolicy.LEAST_TIME
     })
 
     placeSearch = new AMap.PlaceSearch({
@@ -435,6 +441,82 @@ const calculateRouteReference = (startPoi, endPoi, currentSequence) => {
   )
 }
 
+const calculateMaxCommuteTime = (startPoi, endPoi, currentSequence) => {
+  if (!startPoi || !endPoi) {
+    return
+  }
+
+  // 计算驾车时间
+  const drivingPromise = new Promise((resolve) => {
+    if (!driving) {
+      resolve(0)
+      return
+    }
+
+    driving.search(
+      new AMap.LngLat(startPoi.longitude, startPoi.latitude),
+      new AMap.LngLat(endPoi.longitude, endPoi.latitude),
+      {
+        policy: AMap.DrivingPolicy.LEAST_TIME,
+      },
+      (status, result) => {
+        if (currentSequence !== updateSequence) {
+          resolve(0)
+          return
+        }
+
+        if (status === 'complete' && result.routes && result.routes.length > 0) {
+          resolve(result.routes[0].time / 60) // 转换为分钟
+          return
+        }
+
+        resolve(0)
+      },
+    )
+  })
+
+  // 计算公交时间
+  const transitPromise = new Promise((resolve) => {
+    if (!transit) {
+      resolve(0)
+      return
+    }
+
+    transit.search(
+      new AMap.LngLat(startPoi.longitude, startPoi.latitude),
+      new AMap.LngLat(endPoi.longitude, endPoi.latitude),
+      (status, result) => {
+        if (currentSequence !== updateSequence) {
+          resolve(0)
+          return
+        }
+
+        if (status === 'complete' && result.plans && result.plans.length > 0) {
+          resolve(result.plans[0].time / 60) // 转换为分钟
+          return
+        }
+
+        resolve(0)
+      },
+    )
+  })
+
+  // 获取最大时间并计算滑块最大值
+  Promise.all([drivingPromise, transitPromise]).then(([drivingTime, transitTime]) => {
+    if (currentSequence !== updateSequence) {
+      return
+    }
+
+    const maxTime = Math.max(drivingTime, transitTime)
+    if (maxTime > 0) {
+      // 动态计算滑块最大值：向上取整到最近的10，再加20作为缓冲
+      const maxSliderValue = Math.ceil(maxTime / 10) * 10 + 20
+      console.log('Max commute time calculated:', maxTime, 'Slider max value:', maxSliderValue)
+      emit('max-commute-time-updated', maxSliderValue)
+    }
+  })
+}
+
 const fitMapToOverlays = (overlays) => {
   if (!map.value || overlays.length === 0) {
     return
@@ -582,6 +664,7 @@ const updateMap = async () => {
   }
 
   calculateRouteReference(startPoi, endPoi, currentSequence)
+  calculateMaxCommuteTime(startPoi, endPoi, currentSequence)
 
   const [startBounds, endBounds] = await Promise.all([
     getArrivalRangeBounds(startPoi, props.commuteTime),

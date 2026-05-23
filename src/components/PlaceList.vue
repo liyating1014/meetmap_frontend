@@ -49,7 +49,7 @@
         <div class="flex items-center justify-between gap-3">
           <div>
             <p class="text-sm font-medium text-slate-700">通勤时间</p>
-            <p class="mt-1 text-xs text-slate-500">范围 10-60 分钟，用于限定双方的公交/地铁等时圈。</p>
+            <p class="mt-1 text-xs text-slate-500">根据两地实际通勤时间动态调整范围</p>
           </div>
           <div class="rounded-2xl bg-slate-900 px-3 py-2 text-sm font-semibold text-white">
             {{ localCommuteTime }} min
@@ -61,17 +61,12 @@
           class="range-slider mt-4 w-full"
           type="range"
           min="10"
-          max="60"
+          :max="maxCommuteTime"
           step="5"
         />
 
         <div class="mt-2 flex justify-between text-xs text-slate-400">
-          <span>10</span>
-          <span>20</span>
-          <span>30</span>
-          <span>40</span>
-          <span>50</span>
-          <span>60</span>
+          <span v-for="mark in sliderMarks" :key="mark">{{ mark }}</span>
         </div>
       </div>
 
@@ -112,6 +107,10 @@ const props = defineProps({
     type: Number,
     default: 30,
   },
+  maxCommuteTime: {
+    type: Number,
+    default: 60,
+  },
   routeInfo: {
     type: Object,
     default: () => ({ distance: null, duration: null }),
@@ -138,6 +137,18 @@ const durationLabel = computed(() => {
   }
 
   return `${props.routeInfo.duration} 分钟`
+})
+
+// 动态生成滑块刻度
+const sliderMarks = computed(() => {
+  const max = props.maxCommuteTime
+  const steps = 5 // 5等分
+  const marks = []
+  for (let i = 0; i <= steps; i++) {
+    const value = Math.round((max / steps) * i)
+    marks.push(value)
+  }
+  return marks
 })
 
 watch([startPoint, endPoint], () => {
