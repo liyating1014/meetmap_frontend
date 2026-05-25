@@ -167,6 +167,7 @@ watch(() => props.commuteTime, (value) => {
 })
 
 const fetchAiSuggestions = async () => {
+  // 移除早期拦截，即使坐标为空也发送地名文本给后端处理
   if (!startPoint.value || !endPoint.value) {
     return
   }
@@ -174,12 +175,15 @@ const fetchAiSuggestions = async () => {
   loadingAi.value = true
   try {
     const apiBaseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
-    const response = await axios.post(`${apiBaseURL}/api/suggest-meeting-points`, {
+    const response = await axios.post(`${apiBaseURL}/api/route-planning`, {
       start_point: startPoint.value,
       end_point: endPoint.value,
       commute_time: localCommuteTime.value
     })
-    emit('ai-suggestions-updated', response.data)
+    
+    // 安全提取响应数据，处理嵌套结构
+    const responseData = response.data?.data || response.data
+    emit('ai-suggestions-updated', responseData)
   } catch (error) {
     console.error('AI 路线规划失败:', error)
     

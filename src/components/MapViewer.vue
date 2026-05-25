@@ -115,7 +115,7 @@ const initMap = async () => {
     AMap = await AMapLoader.load({
       key: '2755c149ab561bac1e37da8e61d4467c',
       version: '2.0',
-      plugins: ['AMap.Marker', 'AMap.InfoWindow', 'AMap.Driving', 'AMap.Transit', 'AMap.PlaceSearch', 'AMap.ArrivalRange'],
+      plugins: ['AMap.Transit', 'AMap.ArrivalRange', 'AMap.Polygon', 'AMap.Marker', 'AMap.InfoWindow', 'AMap.Driving', 'AMap.PlaceSearch'],
     })
 
     map.value = new AMap.Map('map-container', {
@@ -133,7 +133,7 @@ const initMap = async () => {
     })
 
     transit = new AMap.Transit({
-      policy: AMap.TransitPolicy.LEAST_TIME
+      policy: (window.AMap && window.AMap.TransitPolicy) ? window.AMap.TransitPolicy.LEAST_TIME : 'LEAST_TIME'
     })
 
     placeSearch = new AMap.PlaceSearch({
@@ -448,7 +448,7 @@ const calculateRouteReference = (startPoi, endPoi, currentSequence) => {
     new AMap.LngLat(startPoi.longitude, startPoi.latitude),
     new AMap.LngLat(endPoi.longitude, endPoi.latitude),
     {
-      policy: AMap.DrivingPolicy.LEAST_TIME,
+      policy: (window.AMap && window.AMap.DrivingPolicy) ? window.AMap.DrivingPolicy.LEAST_TIME : 'LEAST_TIME',
     },
     (status, result) => {
       if (currentSequence !== updateSequence) {
@@ -486,7 +486,7 @@ const calculateMaxCommuteTime = (startPoi, endPoi, currentSequence) => {
       new AMap.LngLat(startPoi.longitude, startPoi.latitude),
       new AMap.LngLat(endPoi.longitude, endPoi.latitude),
       {
-        policy: AMap.DrivingPolicy.LEAST_TIME,
+        policy: (window.AMap && window.AMap.DrivingPolicy) ? window.AMap.DrivingPolicy.LEAST_TIME : 'LEAST_TIME',
       },
       (status, result) => {
         if (currentSequence !== updateSequence) {
