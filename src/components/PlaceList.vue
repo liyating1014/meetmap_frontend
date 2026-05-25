@@ -187,6 +187,18 @@ const fetchAiSuggestions = async () => {
   } catch (error) {
     console.error('AI 路线规划失败:', error)
     
+    // 尝试从错误响应中提取数据（后端可能返回 200 但 status: fail）
+    let responseData = null
+    if (error.response && error.response.data) {
+      responseData = error.response.data?.data || error.response.data
+    }
+    
+    // 如果响应中包含 meeting_region 或 recommended_pois，仍然尝试更新 UI
+    if (responseData && (responseData.meeting_region || responseData.recommended_pois)) {
+      emit('ai-suggestions-updated', responseData)
+      return
+    }
+    
     // 详细的错误处理
     if (error.response) {
       // 服务器返回了错误状态码
