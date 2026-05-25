@@ -233,7 +233,7 @@ const getArrivalRangeBounds = (anchor, commuteTime) => new Promise((resolve) => 
       resolve(fallbackBounds)
     },
     {
-      policy: 'LEAST_TIME',
+      policy: (window.AMap && window.AMap.ArrivalRangePolicy) ? window.AMap.ArrivalRangePolicy.LEAST_TIME : 'LEAST_TIME',
     },
   )
 })
