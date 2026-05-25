@@ -167,19 +167,31 @@ watch(() => props.commuteTime, (value) => {
 })
 
 const fetchAiSuggestions = async () => {
-  // 移除早期拦截，即使坐标为空也发送地名文本给后端处理
-  if (!startPoint.value || !endPoint.value) {
+  // 彻底拔掉前置拦截：只要用户填了字就必须发请求，不管高德是否崩溃
+  if (!startPoint.value && !endPoint.value) {
     return
   }
 
   loadingAi.value = true
   try {
     const apiBaseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
-    const response = await axios.post(`${apiBaseURL}/api/route-planning`, {
-      start_point: startPoint.value,
-      end_point: endPoint.value,
-      commute_time: localCommuteTime.value
-    })
+    
+    // 包装纯地名文本，即使坐标为 null 也传过去，触发后端二级高德 Web 编码
+    const payload = {
+      start_point: {
+        name: startPoint.value || "起点A",
+        lng: null,
+        lat: null
+      },
+      end_point: {
+        name: endPoint.value || "起点B",
+        lng: null,
+        lat: null
+      },
+      commute_time: localCommuteTime.value || 60
+    }
+    
+    const response = await axios.post(`${apiBaseURL}/api/route-planning`, payload)
     
     // 安全提取响应数据，处理嵌套结构
     const responseData = response.data?.data || response.data
