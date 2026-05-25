@@ -118,6 +118,14 @@ const initMap = async () => {
       plugins: ['AMap.Transit', 'AMap.ArrivalRange', 'AMap.Polygon', 'AMap.Marker', 'AMap.InfoWindow', 'AMap.Driving', 'AMap.PlaceSearch'],
     })
 
+    // 🔥 核心修正：显式动态加载，确保 Transit 和 ArrivalRange 100% 挂载成功后再初始化
+    await new Promise((resolve) => {
+      AMap.plugin(['AMap.Transit', 'AMap.ArrivalRange', 'AMap.PlaceSearch'], () => {
+        console.log("高德核心插件全量动态加载完成")
+        resolve()
+      })
+    })
+
     map.value = new AMap.Map('map-container', {
       zoom: 11,
       center: [116.397428, 39.90923],
