@@ -37,6 +37,14 @@ const props = defineProps({
     type: Object,
     default: () => ({ start: '', end: '' }),
   },
+  startAnchor: {
+    type: Array,
+    default: null,
+  },
+  endAnchor: {
+    type: Array,
+    default: null,
+  },
   commuteTime: {
     type: Number,
     default: 30,
@@ -862,6 +870,139 @@ const focusOnRecommendedPoi = (poi, index = 0) => {
   showPoiInfoWindow(poi, index)
 }
 
+const updateIsochroneByAnchors = (startAnchor, endAnchor) => {
+  console.log('MapViewer updateIsochroneByAnchors start =', startAnchor)
+  console.log('MapViewer updateIsochroneByAnchors end =', endAnchor)
+
+  if (!map.value || !AMap) {
+    console.log('Map or AMap not ready')
+    return
+  }
+
+  // 将坐标转换为 POI 格式
+  const startPoi = {
+    name: '起点',
+    longitude: startAnchor[0],
+    latitude: startAnchor[1]
+  }
+  const endPoi = {
+    name: '终点',
+    longitude: endAnchor[0],
+    latitude: endAnchor[1]
+  }
+
+  // 触发等时圈计算
+  const currentSequence = ++updateSequence
+  calculateRouteReference(startPoi, endPoi, currentSequence)
+  calculateMaxCommuteTime(startPoi, endPoi, currentSequence)
+
+  // 异步计算等时圈
+  getArrivalRangeBounds(startPoi, props.commuteTime).then(startBounds => {
+    return getArrivalRangeBounds(endPoi, props.commuteTime).then(endBounds => {
+      return { startBounds, endBounds }
+    })
+  }).then(({ startBounds, endBounds }) => {
+    if (currentSequence !== updateSequence) {
+      return
+    }
+
+    console.log('Debug - startBounds:', startBounds.length, 'endBounds:', endBounds.length)
+
+    if (startBounds.length > 0) {
+      renderBounds(startBounds, RANGE_STYLES.start, rangeOverlays)
+    }
+
+    if (endBounds.length > 0) {
+      renderBounds(endBounds, RANGE_STYLES.end, rangeOverlays)
+    }
+
+    const turf = getTurf()
+    console.log('Debug - turf available:', !!turf)
+    const startFeature = createArrivalFeature(startBounds, turf)
+    const endFeature = createArrivalFeature(endBounds, turf)
+    console.log('Debug - startFeature:', !!startFeature, 'endFeature:', !!endFeature)
+    const renderedRangeCount = Number(Boolean(startFeature)) + Number(Boolean(endFeature))
+    const visibleOverlays = [...rangeOverlays.value, ...markers.value]
+
+    if (!turf) {
+      fitMapToOverlays(visibleOverlays)
+      emitIsochroneResult({
+        status: 'error',
+        renderedRangeCount,
+        unresolvedAnchors: [],
+      })
+      return
+    }
+
+    if (startFeature && endFeature) {
+      try {
+        const intersectionFeature = getIntersectionFeature(startFeature, endFeature, turf)
+
+        if (intersectionFeature) {
+          const intersectionArea = getFeatureAreaKm2(intersectionFeature)
+          const intersectionCenter = getFeatureCenter(intersectionFeature)
+          const intersectionPaths = featureToAmapPaths(intersectionFeature)
+
+          console.log('Debug - Intersection area:', intersectionArea)
+          console.log('Debug - Intersection center:', intersectionCenter)
+
+          renderBounds(intersectionPaths, RANGE_STYLES.intersection, intersectionOverlays)
+
+          emitIsochroneResult({
+            status: 'success',
+            intersectionArea,
+            intersectionCenter,
+            renderedRangeCount,
+            unresolvedAnchors: [],
+          })
+        } else {
+          console.log('Debug - No intersection found')
+          emitIsochroneResult({
+            status: 'no_intersection',
+            renderedRangeCount,
+            unresolvedAnchors: [],
+          })
+        }
+      } catch (error) {
+        console.error('Error calculating intersection:', error)
+        emitIsochroneResult({
+          status: 'error',
+          renderedRangeCount,
+          unresolvedAnchors: [],
+        })
+      }
+    } else {
+      fitMapToOverlays(visibleOverlays)
+      emitIsochroneResult({
+        status: 'no_intersection',
+        renderedRangeCount,
+        unresolvedAnchors: [],
+      })
+    }
+  }).catch(error => {
+    console.error('Error calculating isochrone:', error)
+    emitIsochroneResult({
+      status: 'error',
+      renderedRangeCount: 0,
+      unresolvedAnchors: [],
+    })
+  })
+}
+
+const updateAnchorPoints = (startAnchor, endAnchor) => {
+  console.log('MapViewer updateAnchorPoints start =', startAnchor)
+  console.log('MapViewer updateAnchorPoints end =', endAnchor)
+
+  if (
+    Array.isArray(startAnchor) &&
+    Array.isArray(endAnchor) &&
+    startAnchor.length === 2 &&
+    endAnchor.length === 2
+  ) {
+    updateIsochroneByAnchors(startAnchor, endAnchor)
+  }
+}
+
 onMounted(() => {
   initMap()
 })
@@ -878,8 +1019,28 @@ watch(() => props.locations, () => {
   updateMap()
 }, { deep: true })
 
+// 监听新的 startAnchor 和 endAnchor props
+watch(
+  () => [props.startAnchor, props.endAnchor],
+  ([startAnchor, endAnchor]) => {
+    console.log('MapViewer received startAnchor =', startAnchor)
+    console.log('MapViewer received endAnchor =', endAnchor)
+
+    if (
+      Array.isArray(startAnchor) &&
+      Array.isArray(endAnchor) &&
+      startAnchor.length === 2 &&
+      endAnchor.length === 2
+    ) {
+      updateIsochroneByAnchors(startAnchor, endAnchor)
+    }
+  },
+  { deep: true }
+)
+
 defineExpose({
   focusOnPlace,
   focusOnRecommendedPoi,
+  updateAnchorPoints,
 })
 </script>

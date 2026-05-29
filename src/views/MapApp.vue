@@ -295,20 +295,17 @@ const handleAnchorPointsUpdated = (payload) => {
   console.log('parent received startAnchor =', startAnchor)
   console.log('parent received endAnchor =', endAnchor)
 
-  // 类型检查：如果是坐标数组，直接使用
+  // 类型检查：如果是坐标数组，直接传递给 MapViewer
   if (
     Array.isArray(startAnchor) &&
     Array.isArray(endAnchor) &&
     startAnchor.length === 2 &&
     endAnchor.length === 2
   ) {
-    // 使用后端返回的坐标
-    anchorPoints.value = {
-      start: { longitude: startAnchor[0], latitude: startAnchor[1] },
-      end: { longitude: endAnchor[0], latitude: endAnchor[1] }
-    }
-    routeInfo.value = { distance: null, duration: null }
-    recommendedPois.value = []
+    // 调用 MapViewer 的 updateAnchorPoints 方法
+    nextTick(() => {
+      mapViewerRef.value?.updateAnchorPoints?.(startAnchor, endAnchor)
+    })
   } else {
     // 兼容旧的字符串格式
     anchorPoints.value = payload
