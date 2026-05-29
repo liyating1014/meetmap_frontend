@@ -60,7 +60,7 @@ const poiMarkers = ref([])
 let AMap = null
 let infoWindow = null
 let driving = null
-let transit = null
+let transfer = null
 let placeSearch = null
 let poiSearch = null
 let arrivalRange = null
@@ -123,12 +123,12 @@ const initMap = async () => {
     AMap = await AMapLoader.load({
       key: '2755c149ab561bac1e37da8e61d4467c',
       version: '2.0',
-      plugins: ['AMap.Transit', 'AMap.ArrivalRange', 'AMap.Polygon', 'AMap.Marker', 'AMap.InfoWindow', 'AMap.Driving', 'AMap.PlaceSearch'],
+      plugins: ['AMap.Transfer', 'AMap.ArrivalRange', 'AMap.Polygon', 'AMap.Marker', 'AMap.InfoWindow', 'AMap.Driving', 'AMap.PlaceSearch'],
     })
 
-    // 🔥 核心修正：显式动态加载，确保 Transit 和 ArrivalRange 100% 挂载成功后再初始化
+    // 🔥 核心修正：显式动态加载，确保 Transfer 和 ArrivalRange 100% 挂载成功后再初始化
     await new Promise((resolve) => {
-      AMap.plugin(['AMap.Transit', 'AMap.ArrivalRange', 'AMap.PlaceSearch'], () => {
+      AMap.plugin(['AMap.Transfer', 'AMap.ArrivalRange', 'AMap.PlaceSearch'], () => {
         console.log("高德核心插件全量动态加载完成")
         resolve()
       })
@@ -148,8 +148,8 @@ const initMap = async () => {
       autoFitView: false,
     })
 
-    transit = new AMap.Transit({
-      policy: (window.AMap && window.AMap.TransitPolicy) ? window.AMap.TransitPolicy.LEAST_TIME : 'LEAST_TIME'
+    transfer = new AMap.Transfer({
+      policy: (window.AMap && window.AMap.TransferPolicy) ? window.AMap.TransferPolicy.LEAST_TIME : 'LEAST_TIME'
     })
 
     placeSearch = new AMap.PlaceSearch({
@@ -521,13 +521,13 @@ const calculateMaxCommuteTime = (startPoi, endPoi, currentSequence) => {
   })
 
   // 计算公交时间
-  const transitPromise = new Promise((resolve) => {
-    if (!transit) {
+  const transferPromise = new Promise((resolve) => {
+    if (!transfer) {
       resolve(0)
       return
     }
 
-    transit.search(
+    transfer.search(
       new AMap.LngLat(startPoi.longitude, startPoi.latitude),
       new AMap.LngLat(endPoi.longitude, endPoi.latitude),
       (status, result) => {
@@ -547,12 +547,12 @@ const calculateMaxCommuteTime = (startPoi, endPoi, currentSequence) => {
   })
 
   // 获取最大时间并计算滑块最大值
-  Promise.all([drivingPromise, transitPromise]).then(([drivingTime, transitTime]) => {
+  Promise.all([drivingPromise, transferPromise]).then(([drivingTime, transferTime]) => {
     if (currentSequence !== updateSequence) {
       return
     }
 
-    const maxTime = Math.max(drivingTime, transitTime)
+    const maxTime = Math.max(drivingTime, transferTime)
     if (maxTime > 0) {
       // 动态计算滑块最大值：向上取整到最近的10，再加20作为缓冲
       const maxSliderValue = Math.ceil(maxTime / 10) * 10 + 20

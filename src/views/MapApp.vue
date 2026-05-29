@@ -165,7 +165,7 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, nextTick } from 'vue'
 import MapViewer from '../components/MapViewer.vue'
 import PlaceList from '../components/PlaceList.vue'
 
