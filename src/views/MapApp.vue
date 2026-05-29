@@ -105,7 +105,10 @@
                     :key="poi.id"
                     type="button"
                     class="block w-full rounded-2xl bg-white/78 p-4 text-left ring-1 ring-white/70 transition-transform duration-200 hover:-translate-y-0.5"
+                    :class="{ 'ring-2 ring-orange-500 bg-white/95': selectedPoi?.id === poi.id }"
                     @click="handlePoiSelected(poi, index)"
+                    @mouseenter="highlightPoi(poi)"
+                    @mouseleave="clearPoiHighlight"
                   >
                     <div class="flex items-start justify-between gap-3">
                       <div>
@@ -176,6 +179,7 @@ const maxCommuteTime = ref(60)
 const routeInfo = ref({ distance: null, duration: null })
 const anchorPoints = ref({ start: '', end: '' })
 const recommendedPois = ref([])
+const selectedPoi = ref(null)
 const isochroneResult = ref({
   status: 'idle',
   hasIntersection: false,
@@ -331,7 +335,16 @@ const handlePoiResultsUpdated = (pois) => {
 }
 
 const handlePoiSelected = (poi, index) => {
+  selectedPoi.value = poi
   mapViewerRef.value?.focusOnRecommendedPoi(poi, index)
+}
+
+const highlightPoi = (poi) => {
+  mapViewerRef.value?.highlightPoiMarker?.(poi)
+}
+
+const clearPoiHighlight = () => {
+  mapViewerRef.value?.clearPoiHighlight?.()
 }
 
 const handleFallbackPoiClick = (poi) => {

@@ -862,12 +862,68 @@ const focusOnPlace = (location, index) => {
 }
 
 const focusOnRecommendedPoi = (poi, index = 0) => {
+  if (!map.value || !poi) {
+    return
+  }
+
+  // 如果 POI 已有坐标，直接使用
+  if (poi.longitude && poi.latitude) {
+    map.value.setZoomAndCenter(16, [poi.longitude, poi.latitude], false, 1000)
+    showPoiInfoWindow(poi, index)
+    return
+  }
+
+  // 如果没有坐标，使用 PlaceSearch 搜索
+  if (!placeSearch) {
+    console.log('PlaceSearch not ready')
+    return
+  }
+
+  placeSearch.search(poi.name, (status, result) => {
+    if (status === 'complete' && result.poiList && result.poiList.length > 0) {
+      const targetPoi = result.poiList[0]
+      const lngLat = targetPoi.location
+      
+      // 更新 POI 坐标
+      poi.longitude = lngLat.lng
+      poi.latitude = lngLat.lat
+      poi.address = targetPoi.address || poi.address
+      
+      map.value.setZoomAndCenter(16, [lngLat.lng, lngLat.lat], false, 1000)
+      showPoiInfoWindow(poi, index)
+    } else {
+      console.log('POI search failed:', status)
+    }
+  })
+}
+
+const highlightPoiMarker = (poi) => {
   if (!map.value || !poi || !poi.longitude || !poi.latitude) {
     return
   }
 
-  map.value.setZoomAndCenter(16, [poi.longitude, poi.latitude], false, 1000)
-  showPoiInfoWindow(poi, index)
+  // 查找对应的 POI marker 并高亮
+  const marker = poiMarkers.value.find(m => m.getExtData()?.id === poi.id)
+  if (marker) {
+    marker.setIcon(new AMap.Icon({
+      size: new AMap.Size(32, 32),
+      image: 'https://webapi.amap.com/theme/v1.3/markers/n/mark_r.png',
+      imageSize: new AMap.Size(32, 32),
+    }))
+    marker.setZIndex(1000)
+  }
+}
+
+const clearPoiHighlight = () => {
+  // 恢复所有 POI marker 的默认样式
+  poiMarkers.value.forEach(marker => {
+    marker.setIcon(new AMap.Icon({
+      size: new AMap.Size(24, 24),
+      image: 'https://webapi.amap.com/theme/v1.3/markers/n/mark_b.png',
+      imageSize: new AMap.Size(24, 24),
+    }))
+    marker.setZIndex(100)
+  })
 }
 
 const updateIsochroneByAnchors = (startAnchor, endAnchor) => {
@@ -1042,5 +1098,7 @@ defineExpose({
   focusOnPlace,
   focusOnRecommendedPoi,
   updateAnchorPoints,
+  highlightPoiMarker,
+  clearPoiHighlight,
 })
 </script>
