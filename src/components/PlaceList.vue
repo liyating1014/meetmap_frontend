@@ -216,10 +216,12 @@ const fetchAiSuggestions = async () => {
       console.log("startAnchor =", startAnchor)
       console.log("endAnchor =", endAnchor)
       
-      // 触发等时圈计算事件，传递坐标给父组件
+      // 触发等时圈计算事件，传递坐标给父组件（使用对象结构）
       emit('anchor-points-updated', {
-        start: { longitude: startAnchor[0], latitude: startAnchor[1] },
-        end: { longitude: endAnchor[0], latitude: endAnchor[1] }
+        startAnchor,
+        endAnchor,
+        startPoint: backendStartPoint,
+        endPoint: backendEndPoint
       })
     }
     

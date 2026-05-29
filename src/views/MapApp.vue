@@ -289,10 +289,32 @@ const fallbackPoiTypes = computed(() => {
   ]
 })
 
-const handleAnchorPointsUpdated = (data) => {
-  anchorPoints.value = data
-  routeInfo.value = { distance: null, duration: null }
-  recommendedPois.value = []
+const handleAnchorPointsUpdated = (payload) => {
+  const { startAnchor, endAnchor, startPoint, endPoint } = payload
+
+  console.log('parent received startAnchor =', startAnchor)
+  console.log('parent received endAnchor =', endAnchor)
+
+  // 类型检查：如果是坐标数组，直接使用
+  if (
+    Array.isArray(startAnchor) &&
+    Array.isArray(endAnchor) &&
+    startAnchor.length === 2 &&
+    endAnchor.length === 2
+  ) {
+    // 使用后端返回的坐标
+    anchorPoints.value = {
+      start: { longitude: startAnchor[0], latitude: startAnchor[1] },
+      end: { longitude: endAnchor[0], latitude: endAnchor[1] }
+    }
+    routeInfo.value = { distance: null, duration: null }
+    recommendedPois.value = []
+  } else {
+    // 兼容旧的字符串格式
+    anchorPoints.value = payload
+    routeInfo.value = { distance: null, duration: null }
+    recommendedPois.value = []
+  }
 }
 
 const handleCommuteTimeUpdated = (value) => {

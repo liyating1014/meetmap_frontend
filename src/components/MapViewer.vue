@@ -647,9 +647,24 @@ const updateMap = async () => {
   clearMapState()
   emitPoiResults([])
 
-  const requestedStart = props.anchorPoints.start?.trim() ?? ''
-  const requestedEnd = props.anchorPoints.end?.trim() ?? ''
-  const hasRequestedAnchor = Boolean(requestedStart || requestedEnd)
+  // 类型检查：判断是坐标对象还是字符串
+  const isCoordinate = (value) => {
+    return value && typeof value === 'object' && value.longitude && value.latitude
+  }
+
+  let requestedStart, requestedEnd
+
+  if (isCoordinate(props.anchorPoints.start)) {
+    // 如果是坐标对象，直接使用
+    requestedStart = props.anchorPoints.start
+    requestedEnd = props.anchorPoints.end
+  } else {
+    // 如果是字符串，使用 trim() 处理
+    requestedStart = props.anchorPoints.start?.trim() ?? ''
+    requestedEnd = props.anchorPoints.end?.trim() ?? ''
+  }
+
+  const hasRequestedAnchor = Boolean(requestedStart && requestedEnd)
 
   if (!hasRequestedAnchor) {
     emitIsochroneResult({ status: 'idle' })
