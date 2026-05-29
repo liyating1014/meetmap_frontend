@@ -195,6 +195,34 @@ const fetchAiSuggestions = async () => {
     
     // 安全提取响应数据，处理嵌套结构
     const responseData = response.data?.data || response.data
+    
+    // 提取后端返回的坐标数据
+    const backendStartPoint = responseData.start_point
+    const backendEndPoint = responseData.end_point
+    
+    console.log("structured start_point =", backendStartPoint)
+    console.log("structured end_point =", backendEndPoint)
+    
+    // 如果后端返回了有效的坐标，转换成高德坐标格式并触发等时圈计算
+    if (
+      backendStartPoint?.lng &&
+      backendStartPoint?.lat &&
+      backendEndPoint?.lng &&
+      backendEndPoint?.lat
+    ) {
+      const startAnchor = [Number(backendStartPoint.lng), Number(backendStartPoint.lat)]
+      const endAnchor = [Number(backendEndPoint.lng), Number(backendEndPoint.lat)]
+      
+      console.log("startAnchor =", startAnchor)
+      console.log("endAnchor =", endAnchor)
+      
+      // 触发等时圈计算事件，传递坐标给父组件
+      emit('anchor-points-updated', {
+        start: { longitude: startAnchor[0], latitude: startAnchor[1] },
+        end: { longitude: endAnchor[0], latitude: endAnchor[1] }
+      })
+    }
+    
     emit('ai-suggestions-updated', responseData)
   } catch (error) {
     console.error('AI 路线规划失败:', error)
